@@ -1,0 +1,114 @@
+package motor.ph;
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class Attendance {
+     private int employeeId;
+    private String lastName;
+    private String firstName;
+    private String date;
+    private String logInTime;
+    private String logOutTime;
+
+    private static final String FILE_NAME = "C:\\Users\\lasic\\OneDrive\\Documents\\NetBeansProjects\\MOTOR-PH\\build\\classes\\motor\\resources\\attendance_data.csv";
+
+    public Attendance(int employeeId, String lastName, String firstName, String date, String logInTime, String logOutTime) {
+        this.employeeId = employeeId;
+        this.lastName = lastName;
+        this.firstName = firstName;
+        this.date = date;
+        this.logInTime = logInTime;
+        this.logOutTime = logOutTime;
+    }
+    
+    // Getter methods (Add these below your constructor
+    public int getEmployeeId(){
+        return employeeId;
+    }
+    
+    public String getLastName() {
+    return lastName;
+}
+
+public String getFirstName() {
+    return firstName;
+}
+
+public String getDate() {
+    return date;
+}
+
+public String getLogin() {
+         String login = null;
+    return login;
+}
+
+public String getLogout() {
+         String logout = null;
+    return logout;
+}
+
+    public void saveToCSV() {
+        try (PrintWriter writer = new PrintWriter(new FileWriter(FILE_NAME, true))) {
+            writer.println(employeeId + "," + lastName + "," + firstName + "," + date + "," + logInTime + "," + logOutTime);
+        } catch (IOException e) {
+            System.out.println("Error saving attendance data: " + e.getMessage());
+        }
+    }
+
+    public static List<Attendance> readFromCSV() {
+    List<Attendance> attendanceList = new ArrayList<>();
+    try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
+        String line;
+        boolean firstLine = true; // Flag to skip the header row
+
+        while ((line = reader.readLine()) != null) {
+            if (firstLine) { 
+                firstLine = false; // Skip the first line (header)
+                continue;
+            }
+
+            String[] data = line.split(",");
+            if (data.length == 6) {
+                try {
+                    Attendance attendance = new Attendance(
+                        Integer.parseInt(data[0]), data[1], data[2], data[3], data[4], data[5]
+                    );
+                    attendanceList.add(attendance);
+                } catch (NumberFormatException e) {
+                    System.out.println("Skipping invalid record: " + line);
+                }
+            }
+        }
+    } catch (IOException e) {
+        System.out.println("Error reading attendance data: " + e.getMessage());
+    }
+    return attendanceList;
+}
+
+    // New method to get Attendance by Employee ID
+    public static List<Attendance> getAttendanceByEmployeeId(int empId) {
+        List<Attendance> filteredRecords = new ArrayList<>();
+        List<Attendance> allRecords = readFromCSV();
+
+        for (Attendance a : allRecords) {
+            if (a.employeeId == empId) {
+                filteredRecords.add(a);
+            }
+        }
+        return filteredRecords;
+    }
+
+    public void printAttendanceDetails() {
+        System.out.println("Employee ID: " + employeeId);
+        System.out.println("Last Name: " + lastName);
+        System.out.println("First Name: " + firstName);
+        System.out.println("Date: " + date);
+        System.out.println("Log In: " + logInTime);
+        System.out.println("Log Out: " + logOutTime);
+        System.out.println("----------------------------------");
+    }
+
+} 
+
