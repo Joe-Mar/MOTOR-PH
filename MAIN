@@ -1,0 +1,68 @@
+import java.io.IOException;
+import java.util.List;
+import java.util.Scanner;
+
+public class MOTORPH {
+     public static void main(String[] args) throws IOException {
+        Scanner scanner = new Scanner(System.in);
+
+        while (true) {
+    System.out.println("\nMotorPH Payroll System");
+    System.out.println("1. View Employee Details");
+    System.out.println("2. View Attendance");
+    System.out.println("3. View Work Hours");
+    System.out.println("4. Exit");
+    System.out.print("Enter choice: ");
+
+    int choice = scanner.nextInt();
+
+    switch (choice) {
+        case 1:
+            System.out.print("Enter Employee ID: ");
+            int searchEmployeeId = scanner.nextInt();
+            Employee employee = Employee.getEmployeeById(searchEmployeeId);
+            if (employee != null) {
+                employee.printEmployeeDetails();
+            } else {
+                System.out.println("Employee not found.");
+            }
+            break;
+
+        case 2:
+            System.out.print("Enter Employee ID: ");
+            searchEmployeeId = scanner.nextInt();
+            List<Attendance> attendanceList = Attendance.getAttendanceByEmployeeId(searchEmployeeId);
+            if (!attendanceList.isEmpty()) {
+                for (Attendance a : attendanceList) {
+                    a.printAttendanceDetails();
+                }
+            } else {
+                System.out.println("No attendance records found.");
+            }
+            break;
+
+        case 3:
+            System.out.print("Enter Employee ID: ");
+            searchEmployeeId = scanner.nextInt();
+            List<WorkHours> workHoursList = WorkHours.calculateWorkHoursForEmployee(searchEmployeeId);
+            if (!workHoursList.isEmpty()) {
+                for (WorkHours wh : workHoursList) {
+                    wh.printWorkHoursDetails();
+                }
+                WorkHours.saveWorkHoursToCSV(workHoursList);
+            } else {
+                System.out.println("No work hours found.");
+            }
+            break;
+
+        case 4:
+            System.out.println("Exiting program...");
+            scanner.close();
+            return;
+
+        default:
+            System.out.println("Invalid choice. Please try again.");
+    } // End of switch
+        } // End of while loop
+      } // End of main method
+    } // End of class
