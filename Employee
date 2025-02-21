@@ -1,31 +1,38 @@
+/*
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
+ * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
+ */
+package motor.ph;
 import java.io.BufferedReader;
 import java.io.*;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
-import java.util.StringTokenizer;
+import static motor.ph.Attendance.readFromCSV;
 
 public class Employee {
-    // Employee Information
-      int employeeId;
-    String lastName;
-    String firstName;
-    String birthday;
-    String address;
-    String phoneNumber;
-    String sss;
-    String philhealth;
-    String tin;
-    String pagibig;
-    String status;
-    String position;
-    String immediateSupervisor;
-    double basicSalary;
-    double riceSubsidy;
-    double phoneAllowance;
-    double clothingAllowance;
-    double grossSemiMonthlyRate;
-    double hourlyRate;
+    private int employeeId;
+    private String lastName;
+    private String firstName;
+    private String birthday;
+    private String address;
+    private String phoneNumber;
+    private String sss;
+    private String philhealth;
+    private String tin;
+    private String pagibig;
+    private String status;
+    private String position;
+    private String immediateSupervisor;
+    private double basicSalary;
+    private double riceSubsidy;
+    private double phoneAllowance;
+    private double clothingAllowance;
+    private double grossSemiMonthlyRate;
+    private double hourlyRate;
+
+    private static final String FILE_NAME = "C:\\Users\\lasic\\OneDrive\\Documents\\NetBeansProjects\\MOTOR-PH\\build\\classes\\motor\\resources\\employee-data.csv";
 
     // Constructor
     public Employee(int employeeId, String lastName, String firstName, String birthday, String address,
@@ -54,48 +61,83 @@ public class Employee {
         this.hourlyRate = hourlyRate;
     }
 
-    // Method to read employees from CSV
+    // Getters
+    public int getEmployeeId() { return employeeId; }
+    public String getLastName() { return lastName; }
+    public String getFirstName() { return firstName; }
+    public String getBirthday() { return birthday; }
+    public String getAddress() { return address; }
+    public String getPhoneNumber() { return phoneNumber; }
+    public String getSss() { return sss; }
+    public String getPhilhealth() { return philhealth; }
+    public String getTin() { return tin; }
+    public String getPagibig() { return pagibig; }
+    public String getStatus() { return status; }
+    public String getPosition() { return position; }
+    public String getImmediateSupervisor() { return immediateSupervisor; }
+    public double getBasicSalary() { return basicSalary; }
+    public double getRiceSubsidy() { return riceSubsidy; }
+    public double getPhoneAllowance() { return phoneAllowance; }
+    public double getClothingAllowance() { return clothingAllowance; }
+    public double getGrossSemiMonthlyRate() { return grossSemiMonthlyRate; }
+    public double getHourlyRate() { return hourlyRate; }
+
+    // Save employee list to CSV
+    public void saveToCSV(List<Employee> employeeList) {
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
+            writer.write("EmployeeID,LastName,FirstName,Birthday,Address,PhoneNumber,SSS,PhilHealth,TIN,Pagibig,Status,Position,ImmediateSupervisor,BasicSalary,RiceSubsidy,PhoneAllowance,ClothingAllowance,GrossSemiMonthlyRate,HourlyRate\n");
+            for (Employee emp : employeeList) {
+                writer.write(emp.employeeId + "," + emp.lastName + "," + emp.firstName + "," + emp.birthday + "," +
+                        emp.address + "," + emp.phoneNumber + "," + emp.sss + "," + emp.philhealth + "," +
+                        emp.tin + "," + emp.pagibig + "," + emp.status + "," + emp.position + "," +
+                        emp.immediateSupervisor + "," + emp.basicSalary + "," + emp.riceSubsidy + "," +
+                        emp.phoneAllowance + "," + emp.clothingAllowance + "," + emp.grossSemiMonthlyRate + "," +
+                        emp.hourlyRate + "\n");
+            }
+        } catch (IOException e) {
+            System.out.println("Error saving to CSV: " + e.getMessage());
+        }
+    }
+
+    // Read employee data from CSV
     public static List<Employee> readFromCSV() {
         List<Employee> employeeList = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\lasic\\OneDrive\\Documents\\NetBeansProjects\\MOTOR-PH\\build\\classes\\motor\\resources\\employee-data.csv"))) { 
+        try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
-            boolean firstLine = true;
+            boolean firstLine = true; // Flag to skip header row
             while ((line = reader.readLine()) != null) {
                 if (firstLine) {
                     firstLine = false;
-                    continue;
+                    continue; // Skip header line
                 }
 
+                 // Using regex to split correctly handling commas inside quotes
                 String[] data = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
 
                 if (data.length == 19) {
                     try {
-                        int parsedEmployeeId = Integer.parseInt(data[0].trim());
-
                         Employee emp = new Employee(
-                            parsedEmployeeId,
-                            data[1].trim(),
-                            data[2].trim(),
-                            data[3].trim(),
+                            Integer.parseInt(data[0].trim()), 
+                            data[1].trim(), 
+                            data[2].trim(), 
+                            data[3].trim(), 
                             data[4].trim(),
-                            data[5].trim(),
-                            data[6].trim(),
-                            data[7].trim(),
-                            data[8].trim(),
+                            data[5].trim(), 
+                            data[6].trim(), 
+                            data[7].trim(), 
+                            data[8].trim(), 
                             data[9].trim(),
-                            data[10].trim(),
-                            data[11].trim(),
+                            data[10].trim(), 
+                            data[11].trim(), 
                             data[12].trim(),
-                            Double.parseDouble(data[13].trim().replace(",", "")),
-                            Double.parseDouble(data[14].trim().replace(",", "")),
-                            Double.parseDouble(data[15].trim().replace(",", "")),
-                            Double.parseDouble(data[16].trim().replace(",", "")),
-                            Double.parseDouble(data[17].trim().replace(",", "")),
-                            Double.parseDouble(data[18].trim().replace(",", ""))
+                            Double.parseDouble(data[13].replace("\"", "").replace(",", "").trim()),
+                            Double.parseDouble(data[14].replace("\"", "").replace(",", "").trim()),
+                            Double.parseDouble(data[15].replace("\"", "").replace(",", "").trim()),
+                            Double.parseDouble(data[16].replace("\"", "").replace(",", "").trim()),
+                            Double.parseDouble(data[17].replace("\"", "").replace(",", "").trim()),
+                            Double.parseDouble(data[18].replace("\"", "").replace(",", "").trim())
                         );
-
                         employeeList.add(emp);
-
                     } catch (NumberFormatException e) {
                         System.out.println("Skipping invalid employee record: " + line);
                     }
@@ -104,70 +146,44 @@ public class Employee {
                 }
             }
         } catch (IOException e) {
-            System.out.println("Error reading file: " + e.getMessage());
+            System.out.println("Error reading employee data: " + e.getMessage());
         }
+
         return employeeList;
     }
+    
+    // New method to get Employee by Employee ID
+    public static List<Employee> getEmployeeByEmployeeId(int empId) {
+        List<Employee> filteredRecords = new ArrayList<>();
+        List<Employee> allRecords = readFromCSV();
 
-    // Method to search for Employee by ID
-    public static Employee getEmployeeById(int empId) {
-        List<Employee> allEmployees = readFromCSV();
-        System.out.println("Searching for Employee ID: " + empId);
-
-        for (Employee emp : allEmployees) {
-            System.out.println("Checking Employee ID: " + emp.employeeId); // Debugging
-
-            if (emp.employeeId == empId) {
-                return emp;
+        for (Employee a : allRecords) {
+            if (a.employeeId == empId) {
+                filteredRecords.add(a);
             }
         }
-        return null;
+        return filteredRecords;
     }
 
-    // toString method
-    @Override
-    public String toString() {
-        return "Employee ID: " + employeeId + "\n" +
-               "Name: " + firstName + " " + lastName + "\n" +
-               "Birthday: " + birthday + "\n" +
-               "Address: " + address + "\n" +
-               "Phone Number: " + phoneNumber + "\n" +
-               "SSS: " + sss + "\n" +
-               "Philhealth: " + philhealth + "\n" +
-               "TIN: " + tin + "\n" +
-               "Pag-ibig: " + pagibig + "\n" +
-               "Status: " + status + "\n" +
-               "Position: " + position + "\n" +
-               "Immediate Supervisor: " + immediateSupervisor + "\n" +
-               "Basic Salary: " + basicSalary + "\n" +
-               "Rice Subsidy: " + riceSubsidy + "\n" +
-               "Phone Allowance: " + phoneAllowance + "\n" +
-               "Clothing Allowance: " + clothingAllowance + "\n" +
-               "Gross Semi-Monthly Rate: " + grossSemiMonthlyRate + "\n" +
-               "Hourly Rate: " + hourlyRate;
-    }
-
-    // Main method for testing
-    public static void main(String[] args) {
-        Scanner scanner = new Scanner(System.in);
-
-        System.out.print("Enter Employee ID to search: ");
-        int empId = scanner.nextInt();
-
-        Employee emp = Employee.getEmployeeById(empId);
-
-        if (emp != null) {
-            System.out.println("\nEmployee Details:");
-            System.out.println(emp);
-        } else {
-            System.out.println("Employee not found.");
-        }
-
-        scanner.close();
-    }
-
-    void printEmployeeDetails() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
+    // Print employee details
+    public void printEmployeeDetails() {
+        System.out.println("\nEmployee ID: " + employeeId);
+        System.out.println("Name: " + firstName + " " + lastName);
+        System.out.println("Birthday: " + birthday);
+        System.out.println("Address: " + address);
+        System.out.println("Phone Number: " + phoneNumber);
+        System.out.println("SSS: " + sss);
+        System.out.println("PhilHealth: " + philhealth);
+        System.out.println("TIN: " + tin);
+        System.out.println("Pag-ibig: " + pagibig);
+        System.out.println("Status: " + status);
+        System.out.println("Position: " + position);
+        System.out.println("Immediate Supervisor: " + immediateSupervisor);
+        System.out.println("Basic Salary: " + basicSalary);
+        System.out.println("Rice Subsidy: " + riceSubsidy);
+        System.out.println("Phone Allowance: " + phoneAllowance);
+        System.out.println("Clothing Allowance: " + clothingAllowance);
+        System.out.println("Gross Semi-Monthly Rate: " + grossSemiMonthlyRate);
+        System.out.println("Hourly Rate: " + hourlyRate);
     }
 }
-
