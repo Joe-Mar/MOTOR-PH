@@ -42,20 +42,22 @@ public class MOTORPH {
                     } else {
                         System.out.println("No attendance records found.");
                     }   }
+                case 3 -> {
+    System.out.print("Enter Employee ID: ");
+    int searchEmployeeId = scanner.nextInt();
+    
+    List<WorkHours> workHoursList = WorkHours.getWorkHoursByEmployeeId(searchEmployeeId);
+    
+    if (!workHoursList.isEmpty()) {
+        for (WorkHours wh : workHoursList) {
+            wh.printWorkHoursDetails();
+        }
+    } else {
+        System.out.println("No work hours records found.");
+    }
+}
 
-        case 3 -> {
-            System.out.print("Enter Employee ID: ");
-                    int searchEmployeeId = scanner.nextInt();
-                    List<WorkHours> workHoursList = WorkHours.calculateWorkHoursForEmployee(searchEmployeeId);
-                    if (!workHoursList.isEmpty()) {
-                        for (WorkHours wh : workHoursList) {
-                            wh.printWorkHoursDetails();
-                        }
-                        WorkHours.saveWorkHoursToCSV(workHoursList);
-                    } else {
-                        System.out.println("No work hours found.");
-                    }   }
-
+        
         case 4 -> {
             System.out.println("Exiting program...");
             scanner.close();
