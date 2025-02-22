@@ -1,0 +1,37 @@
+package motor.ph;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.List;
+
+
+public class SalaryCalculator {
+        public static double calculateWeeklySalary(int employeeId, LocalDate startDate, LocalDate endDate) {
+        // Get Employee details
+        List<Employee> employeeList = Employee.getEmployeeByEmployeeId(employeeId);
+        if (employeeList.isEmpty()) {
+            System.out.println("Employee not found.");
+            return 0.0;
+        }
+        Employee employee = employeeList.get(0); // Assume one matching record
+
+        // Compute total work hours for the given week
+        double totalHoursWorked = WorkHours.getTotalHoursByEmployee(employeeId, startDate, endDate);
+
+        // Compute base salary
+        double baseSalary = totalHoursWorked * employee.getHourlyRate();
+
+        // Compute pro-rated weekly allowances
+        double weeklyRiceSubsidy = employee.getRiceSubsidy() / 4;
+        double weeklyPhoneAllowance = employee.getPhoneAllowance() / 4;
+        double weeklyClothingAllowance = employee.getClothingAllowance() / 4;
+
+        // Total gross weekly salary
+        double grossWeeklySalary = baseSalary + weeklyRiceSubsidy + weeklyPhoneAllowance + weeklyClothingAllowance;
+
+        // Debugging Output
+        System.out.printf("Employee ID: %d\nTotal Hours Worked: %.2f\nBase Salary: %.2f\nAllowances: %.2f (Rice) + %.2f (Phone) + %.2f (Clothing)\nGross Weekly Salary: %.2f\n",
+                employeeId, totalHoursWorked, baseSalary, weeklyRiceSubsidy, weeklyPhoneAllowance, weeklyClothingAllowance, grossWeeklySalary);
+
+        return grossWeeklySalary;
+    }
+}
