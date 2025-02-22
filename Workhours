@@ -1,136 +1,126 @@
+package motor.ph;
 import java.io.*;
+import java.time.Duration;
+import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.temporal.ChronoUnit;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.time.*; 
+
+
 
 public class WorkHours {
-    private int employeeId;
-    private String lastName;
-    private String firstName;
-    private String date;
-    private String login;
-    private String logout;
-    private double totalHoursWorked;
 
-    // Constructor
-    public WorkHours(int employeeId, String lastName, String firstName, String date, String login, String logout, double totalHoursWorked) {
+     int employeeId;
+    private String date;
+    private double hoursWorked;
+    
+    private static final String FILE_NAME = "C:\\Users\\lasic\\OneDrive\\Documents\\NetBeansProjects\\MOTOR-PH\\build\\classes\\motor\\resources\\attendance_data.csv";
+    private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+
+    public WorkHours(int employeeId, String date, double hoursWorked) {
         this.employeeId = employeeId;
-        this.lastName = lastName;
-        this.firstName = firstName;
         this.date = date;
-        this.login = login;
-        this.logout = logout;
-        this.totalHoursWorked = totalHoursWorked;
+        this.hoursWorked = hoursWorked;
     }
 
-    // Method to calculate total work hours from attendance data
-    public static List<WorkHours> calculateWorkHoursForEmployee(int empId) {
-        List<WorkHours> workHoursList = new ArrayList<>();
-        List<Attendance> attendanceList = Attendance.getAttendanceByEmployeeId(empId);
+    public int getEmployeeId() {
+        return employeeId;
+    }
 
-        for (Attendance a : attendanceList) {
-            try {
-                // Convert Login and Logout times to LocalTime format
-                LocalTime loginTime = LocalTime.parse(a.getLogin());
-                LocalTime logoutTime = LocalTime.parse(a.getLogout());
+    public String getDate() {
+        return date;
+    }
 
-                // Calculate total hours worked
-                double totalHours = ChronoUnit.MINUTES.between(loginTime, logoutTime) / 60.0;
+    public double getHoursWorked() {
+        return hoursWorked;
+    }
 
-                // Create a WorkHours object
-                WorkHours wh = new WorkHours(
-                        a.getEmployeeId(),
-                        a.getLastName(),
-                        a.getFirstName(),
-                        a.getDate(),
-                        a.getLogin(),
-                        a.getLogout(),
-                        totalHours
-                );
+    public static List<WorkHours> computeWorkHours() {
+    List<WorkHours> workHoursList = new ArrayList<>();
+    List<String[]> data = readCSV("C:\\Users\\lasic\\OneDrive\\Documents\\NetBeansProjects\\MOTOR-PH\\build\\classes\\motor\\resources\\attendance_data.csv");
 
-                workHoursList.add(wh);
-            } catch (Exception e) {
-                System.out.println("Error processing work hours for " + a.getEmployeeId() + ": " + e.getMessage());
+    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
+    DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H:mm"); // Supports both "8:59" and "08:59"
+
+    for (String[] row : data) {
+        try {
+            int empId = Integer.parseInt(row[0]);
+            LocalDate date = LocalDate.parse(row[3], dateFormatter);
+            LocalTime login = LocalTime.parse(row[4], timeFormatter);
+            LocalTime logout = LocalTime.parse(row[5], timeFormatter);
+            
+            double hoursWorked = (double) Duration.between(login, logout).toMinutes() / 60;
+            workHoursList.add(new WorkHours(empId, row[3], hoursWorked));
+
+        } catch (Exception e) {
+            System.out.println("Skipping invalid record: " + Arrays.toString(row) + " - Error: " + e.getMessage());
+        }
+    }
+    return workHoursList;
+}
+    
+    public static double getTotalHoursByEmployee(int empId, int startDay, int endDay) {
+        double totalHours = 0.0;
+        List<WorkHours> allWorkHours = computeWorkHours();
+
+        for (WorkHours wh : allWorkHours) {
+            LocalDate date = LocalDate.parse(wh.getDate(), dateFormatter);
+            if (wh.getEmployeeId() == empId && date.getDayOfMonth() >= startDay && date.getDayOfMonth() <= endDay) {
+                totalHours += wh.getHoursWorked();
             }
         }
-
-        return workHoursList;
-    }
-
-    // Method to display Work Hours
-    public void printWorkHoursDetails() {
-        System.out.println(date + " | " + login + " - " + logout + " | Total Hours: " + totalHoursWorked);
+        return totalHours;
     }
     
-    /**
- * Saves work hours data to the CSV file.
- * This method writes the employee's work hours, including login, logout, and total hours worked, to the "workhours.csv" file.
- *
- * @param workHoursList The list of work hours to save.
- * @throws IOException If an I/O error occurs while writing to the file.
- */
-public static void saveWorkHoursToCSV(List<WorkHours> workHoursList) throws IOException {
-    try (BufferedWriter writer = new BufferedWriter(new FileWriter("workhours.csv", true))) {
-        for (WorkHours wh : workHoursList) {
-            writer.write(wh.getEmployeeId() + "," + wh.getLastName() + "," + wh.getFirstName() + "," + wh.getDate() + "," +
-                    wh.getLoginTime() + "," + wh.getLogoutTime() + "," + wh.getTotalHours());
-            writer.newLine();
-        }
-    }
-}
+    public static List<String[]> readCSV(String filePath) {
+    List<String[]> data = new ArrayList<>();
 
-    // Fetch Work Hours from workhours.csv
-    public static List<WorkHours> getWorkHoursByEmployeeId(int empId) {
-        List<WorkHours> workHoursList = new ArrayList<>();
-        try (BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\lasic\\OneDrive\\Documents\\NetBeansProjects\\MOTOR-PH\\src\\motor\\resources\\workhours_data.csv"))) {
-            String line;
-            boolean firstLine = true;
-            while ((line = reader.readLine()) != null) {
-                if (firstLine) {
-                    firstLine = false;
-                    continue;
-                }
-                String[] data = line.split(",");
-                if (data.length >= 7) {
-                    int id = Integer.parseInt(data[0]);
-                    if (id == empId) {
-                        WorkHours wh = new WorkHours(id, data[1], data[2], data[3], data[4], data[5], Double.parseDouble(data[6]));
-                        workHoursList.add(wh);
-                    }
-                }
+    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+        String line;
+        boolean firstLine = true; // Flag to skip the header row
+
+        while ((line = reader.readLine()) != null) {
+            if (firstLine) {  
+                firstLine = false;  // Skip the header
+                continue;
             }
-        } catch (IOException e) {
-            System.out.println("Error reading work hours file: " + e.getMessage());
+            data.add(line.split(","));  // Split by comma and add to list
         }
-        return workHoursList;
+    } catch (IOException e) {
+        System.out.println("Error reading CSV file: " + e.getMessage());
     }
-
-    private String getEmployeeId() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    private String getLoginTime() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    private String getLogoutTime() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    private String getLastName() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    private String getFirstName() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    private char[] getTotalHours() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
-
-    private String getDate() {
-        throw new UnsupportedOperationException("Not supported yet."); // Generated from nbfs://nbhost/SystemFileSystem/Templates/Classes/Code/GeneratedMethodBody
-    }
+    return data;
 }
 
+    public static void printWorkHoursByEmployee(int empId) {
+        double firstHalf = getTotalHoursByEmployee(empId, 1, 15);
+        double secondHalf = getTotalHoursByEmployee(empId, 16, 31);
+        
+        System.out.println("\n--- Work Hours for Employee " + empId + " ---");
+        System.out.println("Work Hours (1st-15th): " + firstHalf + " hours");
+        System.out.println("Work Hours (16th-End): " + secondHalf + " hours");
+        System.out.println("Total Work Hours: " + (firstHalf + secondHalf) + " hours");
+    }
+
+    public void printWorkHoursDetails() {
+        System.out.println("Employee ID: " + employeeId);
+        System.out.println("Date: " + date);
+        System.out.println("Hours Worked: " + hoursWorked);
+        System.out.println("------------------------------");
+    }
+
+    // Fixed method to filter work hours by employee ID
+    public static List<WorkHours> getWorkHoursByEmployeeId(int empId) {
+        List<WorkHours> filteredRecords = new ArrayList<>();
+        List<WorkHours> allRecords = computeWorkHours();
+
+        for (WorkHours a : allRecords) {
+            if (a.getEmployeeId() == empId) {
+                filteredRecords.add(a);
+            }
+        }
+        return filteredRecords;
+    }
+}
