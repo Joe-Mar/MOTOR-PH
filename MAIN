@@ -1,18 +1,22 @@
 package motor.ph;
 import java.io.IOException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Scanner;
 
 public class MOTORPH {
-     public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         Scanner scanner = new Scanner(System.in);
+        DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
 
         while (true) {
             System.out.println("\nMotorPH Payroll System");
             System.out.println("1. View Employee Details");
             System.out.println("2. View Attendance");
             System.out.println("3. View Work Hours");
-            System.out.println("4. Exit");
+            System.out.println("4. Calculate Weekly Salary"); // New option
+            System.out.println("5. Exit");
             System.out.print("Enter choice: ");
 
             int choice = scanner.nextInt();
@@ -61,6 +65,21 @@ public class MOTORPH {
                 }
 
                 case 4 -> {
+                    System.out.print("Enter Employee ID: ");
+                    int employeeId = scanner.nextInt();
+                    scanner.nextLine(); // Consume newline
+
+                    System.out.print("Enter Start Date (MM/dd/yyyy): ");
+                    LocalDate startDate = LocalDate.parse(scanner.nextLine(), dateFormatter);
+
+                    System.out.print("Enter End Date (MM/dd/yyyy): ");
+                    LocalDate endDate = LocalDate.parse(scanner.nextLine(), dateFormatter);
+
+                    double weeklySalary = SalaryCalculator.calculateWeeklySalary(employeeId, startDate, endDate);
+                    System.out.printf("Total Weekly Salary: %.2f\n", weeklySalary);
+                }
+
+                case 5 -> {
                     System.out.println("Exiting program...");
                     scanner.close();
                     return;
@@ -71,4 +90,3 @@ public class MOTORPH {
         } // End of while loop
     } // End of main method
 } // End of class
-
