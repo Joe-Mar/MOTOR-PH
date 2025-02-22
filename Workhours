@@ -61,18 +61,20 @@ public class WorkHours {
     return workHoursList;
 }
     
-    public static double getTotalHoursByEmployee(int empId, int startDay, int endDay) {
-        double totalHours = 0.0;
-        List<WorkHours> allWorkHours = computeWorkHours();
+    public static double getTotalHoursByEmployee(int empId, LocalDate startDate, LocalDate endDate) {
+    double totalHours = 0.0;
+    List<WorkHours> allWorkHours = computeWorkHours();
 
-        for (WorkHours wh : allWorkHours) {
-            LocalDate date = LocalDate.parse(wh.getDate(), dateFormatter);
-            if (wh.getEmployeeId() == empId && date.getDayOfMonth() >= startDay && date.getDayOfMonth() <= endDay) {
-                totalHours += wh.getHoursWorked();
-            }
+    for (WorkHours wh : allWorkHours) {
+        LocalDate date = LocalDate.parse(wh.getDate(), dateFormatter);
+
+        // Ensure the date is within the correct week
+        if (wh.getEmployeeId() == empId && (date.isEqual(startDate) || date.isAfter(startDate)) && date.isBefore(endDate.plusDays(1))) {
+            totalHours += wh.getHoursWorked();
         }
-        return totalHours;
     }
+    return totalHours;
+}
     
     public static List<String[]> readCSV(String filePath) {
     List<String[]> data = new ArrayList<>();
@@ -95,8 +97,14 @@ public class WorkHours {
 }
 
     public static void printWorkHoursByEmployee(int empId) {
-        double firstHalf = getTotalHoursByEmployee(empId, 1, 15);
-        double secondHalf = getTotalHoursByEmployee(empId, 16, 31);
+        LocalDate startFirstHalf = LocalDate.of(2024, 6, 1);  // Example June 1, 2024
+LocalDate endFirstHalf = LocalDate.of(2024, 6, 15);  // Example June 15, 2024
+
+LocalDate startSecondHalf = LocalDate.of(2024, 6, 16); // Example June 16, 2024
+LocalDate endSecondHalf = LocalDate.of(2024, 6, 30);   // Example June 30, 2024
+
+        double firstHalf = getTotalHoursByEmployee(empId, startFirstHalf, endFirstHalf);
+        double secondHalf = getTotalHoursByEmployee(empId, startSecondHalf, endSecondHalf);
         
         System.out.println("\n--- Work Hours for Employee " + empId + " ---");
         System.out.println("Work Hours (1st-15th): " + firstHalf + " hours");
