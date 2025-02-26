@@ -1,28 +1,31 @@
-package motor.ph;
 import java.io.*;
 import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.time.*; 
 
 
 
-public class WorkHours {
-
-     int employeeId;
+public class WorkHours { 
+     private int employeeId;
     private String date;
-    private double hoursWorked;
-    
+    private double regularHours;
+    private double overtimeHours;
+    private double lateMinutes;
+    private double lateDeduction;
+
     private static final String FILE_NAME = "C:\\Users\\lasic\\OneDrive\\Documents\\NetBeansProjects\\MOTOR-PH\\build\\classes\\motor\\resources\\attendance_data.csv";
     private static final DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("HH:mm");
+    private static final DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H:mm");
 
-    public WorkHours(int employeeId, String date, double hoursWorked) {
+    public WorkHours(int employeeId, String date, double regularHours, double overtimeHours, double lateMinutes, double lateDeduction) {
         this.employeeId = employeeId;
         this.date = date;
-        this.hoursWorked = hoursWorked;
+        this.regularHours = regularHours;
+        this.overtimeHours = overtimeHours;
+        this.lateMinutes = lateMinutes;  //  Added this
+        this.lateDeduction = lateDeduction;
     }
 
     public int getEmployeeId() {
@@ -33,102 +36,108 @@ public class WorkHours {
         return date;
     }
 
-    public double getHoursWorked() {
-        return hoursWorked;
+    public double getRegularHours() {
+        return regularHours;
+    }
+
+    public double getOvertimeHours() {
+        return overtimeHours;
+    }
+
+    public double getLateMinutes() {
+        return lateMinutes;
+    }
+
+    public double getLateDeduction() {
+        return lateDeduction;
     }
 
     public static List<WorkHours> computeWorkHours() {
-    List<WorkHours> workHoursList = new ArrayList<>();
-    List<String[]> data = readCSV("C:\\Users\\lasic\\OneDrive\\Documents\\NetBeansProjects\\MOTOR-PH\\build\\classes\\motor\\resources\\attendance_data.csv");
+        List<WorkHours> workHoursList = new ArrayList<>();
+        List<String[]> data = readCSV(FILE_NAME);
 
-    DateTimeFormatter dateFormatter = DateTimeFormatter.ofPattern("MM/dd/yyyy");
-    DateTimeFormatter timeFormatter = DateTimeFormatter.ofPattern("H:mm"); // Supports both "8:59" and "08:59"
+        for (String[] row : data) {
+            try {
+                int empId = Integer.parseInt(row[0]);
+                LocalDate date = LocalDate.parse(row[3], dateFormatter);
+                LocalTime login = LocalTime.parse(row[4], timeFormatter);
+                LocalTime logout = LocalTime.parse(row[5], timeFormatter);
 
-    for (String[] row : data) {
-        try {
-            int empId = Integer.parseInt(row[0]);
-            LocalDate date = LocalDate.parse(row[3], dateFormatter);
-            LocalTime login = LocalTime.parse(row[4], timeFormatter);
-            LocalTime logout = LocalTime.parse(row[5], timeFormatter);
-            
-            double hoursWorked = (double) Duration.between(login, logout).toMinutes() / 60;
-            workHoursList.add(new WorkHours(empId, row[3], hoursWorked));
+                // Determine shift start time (rounds down to nearest hour)
+                int shiftHour = (login.getMinute() > 10) ? login.getHour() : Math.max(8, login.getHour());
+                LocalTime shiftStart = LocalTime.of(shiftHour, 0);
 
-        } catch (Exception e) {
-            System.out.println("Skipping invalid record: " + Arrays.toString(row) + " - Error: " + e.getMessage());
+                // Calculate late minutes if logged in past grace period (8:11 or later)
+                long lateMinutes = login.isAfter(shiftStart.plusMinutes(10)) ? Duration.between(shiftStart, login).toMinutes() : 0;
+                
+                // Calculate total work hours
+                double totalWorkHours = (double) Duration.between(login, logout).toMinutes() / 60;
+
+                // Separate regular and overtime hours
+                double regularHours = Math.min(8, totalWorkHours);
+                double overtimeHours = Math.max(0, totalWorkHours - 8);
+
+                // Compute late deduction based on hourly rate (placeholder)
+                double hourlyRate = 100; // Replace this with actual calculation
+                double lateDeduction = (hourlyRate / 60) * lateMinutes;
+
+                workHoursList.add(new WorkHours(empId, row[3], regularHours, overtimeHours, lateMinutes, lateDeduction));
+
+            } catch (Exception e) {
+                System.out.println("Skipping invalid record: " + Arrays.toString(row) + " - Error: " + e.getMessage());
+            }
         }
+        return workHoursList;
     }
-    return workHoursList;
-}
-    
-    public static double getTotalHoursByEmployee(int empId, LocalDate startDate, LocalDate endDate) {
-    double totalHours = 0.0;
-    List<WorkHours> allWorkHours = computeWorkHours();
 
-    for (WorkHours wh : allWorkHours) {
-        LocalDate date = LocalDate.parse(wh.getDate(), dateFormatter);
-
-        // Ensure the date is within the correct week
-        if (wh.getEmployeeId() == empId && (date.isEqual(startDate) || date.isAfter(startDate)) && date.isBefore(endDate.plusDays(1))) {
-            totalHours += wh.getHoursWorked();
-        }
+    public static double getTotalRegularHours(int empId, LocalDate startDate, LocalDate endDate) {
+        return computeWorkHours().stream()
+                .filter(wh -> wh.getEmployeeId() == empId && isDateInRange(wh.getDate(), startDate, endDate))
+                .mapToDouble(WorkHours::getRegularHours)
+                .sum();
     }
-    return totalHours;
-}
-    
+
+    public static double getTotalOvertimeHours(int empId, LocalDate startDate, LocalDate endDate) {
+        return computeWorkHours().stream()
+                .filter(wh -> wh.getEmployeeId() == empId && isDateInRange(wh.getDate(), startDate, endDate))
+                .mapToDouble(WorkHours::getOvertimeHours)
+                .sum();
+    }
+
+    public static double getTotalLateMinutes(int empId, LocalDate startDate, LocalDate endDate) {
+        return computeWorkHours().stream()
+                .filter(wh -> wh.getEmployeeId() == empId && isDateInRange(wh.getDate(), startDate, endDate))
+                .mapToDouble(WorkHours::getLateMinutes)
+                .sum();
+    }
+
+    public static double getTotalLateDeductions(int empId, LocalDate startDate, LocalDate endDate, double hourlyRate) {
+        return computeWorkHours().stream()
+                .filter(wh -> wh.getEmployeeId() == empId && isDateInRange(wh.getDate(), startDate, endDate))
+                .mapToDouble(wh -> (hourlyRate / 60) * wh.getLateMinutes())  // ✅ Fixed: Used getLateMinutes()
+                .sum();
+    }
+
+    private static boolean isDateInRange(String dateStr, LocalDate startDate, LocalDate endDate) {
+        LocalDate date = LocalDate.parse(dateStr, dateFormatter);
+        return (date.isEqual(startDate) || date.isAfter(startDate)) && date.isBefore(endDate.plusDays(1));
+    }
+
     public static List<String[]> readCSV(String filePath) {
-    List<String[]> data = new ArrayList<>();
-
-    try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
-        String line;
-        boolean firstLine = true; // Flag to skip the header row
-
-        while ((line = reader.readLine()) != null) {
-            if (firstLine) {  
-                firstLine = false;  // Skip the header
-                continue;
+        List<String[]> data = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(filePath))) {
+            String line;
+            boolean firstLine = true;
+            while ((line = reader.readLine()) != null) {
+                if (firstLine) {
+                    firstLine = false;
+                    continue;
+                }
+                data.add(line.split(","));
             }
-            data.add(line.split(","));  // Split by comma and add to list
+        } catch (IOException e) {
+            System.out.println("Error reading CSV file: " + e.getMessage());
         }
-    } catch (IOException e) {
-        System.out.println("Error reading CSV file: " + e.getMessage());
-    }
-    return data;
-}
-
-    public static void printWorkHoursByEmployee(int empId) {
-        LocalDate startFirstHalf = LocalDate.of(2024, 6, 1);  // Example June 1, 2024
-LocalDate endFirstHalf = LocalDate.of(2024, 6, 15);  // Example June 15, 2024
-
-LocalDate startSecondHalf = LocalDate.of(2024, 6, 16); // Example June 16, 2024
-LocalDate endSecondHalf = LocalDate.of(2024, 6, 30);   // Example June 30, 2024
-
-        double firstHalf = getTotalHoursByEmployee(empId, startFirstHalf, endFirstHalf);
-        double secondHalf = getTotalHoursByEmployee(empId, startSecondHalf, endSecondHalf);
-        
-        System.out.println("\n--- Work Hours for Employee " + empId + " ---");
-        System.out.println("Work Hours (1st-15th): " + firstHalf + " hours");
-        System.out.println("Work Hours (16th-End): " + secondHalf + " hours");
-        System.out.println("Total Work Hours: " + (firstHalf + secondHalf) + " hours");
-    }
-
-    public void printWorkHoursDetails() {
-        System.out.println("Employee ID: " + employeeId);
-        System.out.println("Date: " + date);
-        System.out.println("Hours Worked: " + hoursWorked);
-        System.out.println("------------------------------");
-    }
-
-    // Fixed method to filter work hours by employee ID
-    public static List<WorkHours> getWorkHoursByEmployeeId(int empId) {
-        List<WorkHours> filteredRecords = new ArrayList<>();
-        List<WorkHours> allRecords = computeWorkHours();
-
-        for (WorkHours a : allRecords) {
-            if (a.getEmployeeId() == empId) {
-                filteredRecords.add(a);
-            }
-        }
-        return filteredRecords;
+        return data;
     }
 }
