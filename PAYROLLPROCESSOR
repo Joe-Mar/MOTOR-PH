@@ -1,0 +1,63 @@
+import java.time.LocalDate;
+import java.util.List;
+
+public class PayrollProcessor {
+     public static void processPayroll(int employeeId, LocalDate startDate, LocalDate endDate) {
+        // Get Employee details
+        List<Employee> employeeList = Employee.getEmployeeByEmployeeId(employeeId);
+        if (employeeList.isEmpty()) {
+            System.out.println("Employee not found.");
+            return;
+        }
+        
+        Employee employee = employeeList.get(0);
+        double hourlyRate = employee.getBasicSalary() / 40; // Assuming 40-hour workweek
+
+        // Get work hour details from WorkHours class
+        double regularHours = WorkHours.getTotalRegularHours(employeeId, startDate, endDate);
+        double overtimeHours = WorkHours.getTotalOvertimeHours(employeeId, startDate, endDate);
+        double lateDeduction = WorkHours.getTotalLateDeductions(employeeId, startDate, endDate, hourlyRate);
+
+        // Compute Base Salary
+        double baseSalary = regularHours * hourlyRate;
+        double overtimePay = overtimeHours * (hourlyRate * 1.25); // 25% OT rate
+        double grossSalary = baseSalary + overtimePay;
+
+        // Compute allowances (weekly breakdown)
+        double weeklyRiceSubsidy = employee.getRiceSubsidy() / 4;
+        double weeklyPhoneAllowance = employee.getPhoneAllowance() / 4;
+        double weeklyClothingAllowance = employee.getClothingAllowance() / 4;
+        double totalAllowances = weeklyRiceSubsidy + weeklyPhoneAllowance + weeklyClothingAllowance;
+
+        // Compute total gross income including allowances
+        double totalGrossIncome = grossSalary + totalAllowances;
+
+        // Compute government deductions
+        double sssDeduction = GovernmentDeduction.calculateSSS(totalGrossIncome);
+        double pagIbigDeduction = GovernmentDeduction.calculatePagIbig(totalGrossIncome);
+        double philHealthDeduction = GovernmentDeduction.calculatePhilHealth(totalGrossIncome);
+        double totalDeductions = sssDeduction + pagIbigDeduction + philHealthDeduction;
+
+        // Compute taxable income after government deductions
+        double taxableIncome = totalGrossIncome - totalDeductions;
+
+        // Compute tax deduction
+        double taxDeduction = TaxComputation.computeTax(taxableIncome);
+        totalDeductions += taxDeduction;
+
+        // Compute final net salary after late deductions
+        double netSalary = totalGrossIncome - totalDeductions - lateDeduction;
+
+        // Display Payroll Breakdown
+        System.out.printf("\n=== Payroll Summary ===\n");
+        System.out.printf("Employee ID: %d\nName: %s %s\nPosition: %s\nTotal Hours Worked: %.2f\n",
+                employeeId, employee.getFirstName(), employee.getLastName(), employee.getPosition(), regularHours + overtimeHours);
+        System.out.printf("Hourly Rate: %.2f\nBase Salary: %.2f\nOvertime Pay: %.2f\n", hourlyRate, baseSalary, overtimePay);
+        System.out.printf("Allowances: %.2f (Rice) + %.2f (Phone) + %.2f (Clothing) = %.2f\n", 
+                weeklyRiceSubsidy, weeklyPhoneAllowance, weeklyClothingAllowance, totalAllowances);
+        System.out.printf("Gross Salary: %.2f\nSSS: %.2f\nPag-IBIG: %.2f\nPhilHealth: %.2f\nTax: %.2f\nLate Deduction: %.2f\n",
+                totalGrossIncome, sssDeduction, pagIbigDeduction, philHealthDeduction, taxDeduction, lateDeduction);
+        System.out.printf("Net Salary: %.2f\n", netSalary);
+        System.out.println("------------------------------");
+    }
+}
