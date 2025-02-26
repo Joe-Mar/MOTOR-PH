@@ -1,18 +1,11 @@
-/*
- * Click nbfs://nbhost/SystemFileSystem/Templates/Licenses/license-default.txt to change this license
- * Click nbfs://nbhost/SystemFileSystem/Templates/Classes/Class.java to edit this template
- */
 package motor.ph;
 import java.io.BufferedReader;
 import java.io.*;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
-import static motor.ph.Attendance.readFromCSV;
 
 public class Employee {
-    private int employeeId;
+   private int employeeId;
     private String lastName;
     private String firstName;
     private String birthday;
@@ -82,6 +75,31 @@ public class Employee {
     public double getGrossSemiMonthlyRate() { return grossSemiMonthlyRate; }
     public double getHourlyRate() { return hourlyRate; }
 
+    // Updated method: Get prorated total allowances
+    public double getAllowances(long totalWorkDays, long workDays) {
+        double totalMonthlyAllowance = riceSubsidy + phoneAllowance + clothingAllowance;
+        if (totalWorkDays > 0) {
+            return (totalMonthlyAllowance / totalWorkDays) * workDays; // Prorated allowance calculation
+        }
+        return 0;
+    }
+
+    // Get Employee by ID
+    public static Employee getEmployeeById(int empId) {
+        List<Employee> allRecords = readFromCSV();
+        for (Employee a : allRecords) {
+            if (a.employeeId == empId) {
+                return a;
+            }
+        }
+        return null;
+    }
+    
+
+public double getAllowances() {
+    return phoneAllowance + riceSubsidy + clothingAllowance;
+}
+
     // Save employee list to CSV
     public void saveToCSV(List<Employee> employeeList) {
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(FILE_NAME))) {
@@ -104,14 +122,13 @@ public class Employee {
         List<Employee> employeeList = new ArrayList<>();
         try (BufferedReader reader = new BufferedReader(new FileReader(FILE_NAME))) {
             String line;
-            boolean firstLine = true; // Flag to skip header row
+            boolean firstLine = true;
             while ((line = reader.readLine()) != null) {
                 if (firstLine) {
                     firstLine = false;
-                    continue; // Skip header line
+                    continue;
                 }
 
-                 // Using regex to split correctly handling commas inside quotes
                 String[] data = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)");
 
                 if (data.length == 19) {
@@ -152,7 +169,7 @@ public class Employee {
         return employeeList;
     }
     
-    // New method to get Employee by Employee ID
+     // New method to get Employee by Employee ID
     public static List<Employee> getEmployeeByEmployeeId(int empId) {
         List<Employee> filteredRecords = new ArrayList<>();
         List<Employee> allRecords = readFromCSV();
@@ -164,7 +181,7 @@ public class Employee {
         }
         return filteredRecords;
     }
-
+    
     // Print employee details
     public void printEmployeeDetails() {
         System.out.println("\nEmployee ID: " + employeeId);
