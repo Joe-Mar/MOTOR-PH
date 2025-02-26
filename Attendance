@@ -40,13 +40,11 @@ public String getDate() {
 }
 
 public String getLogin() {
-         String login = null;
-    return login;
+    return logInTime;
 }
 
 public String getLogout() {
-         String logout = null;
-    return logout;
+    return logOutTime;
 }
 
     public void saveToCSV() {
