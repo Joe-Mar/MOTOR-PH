@@ -1,37 +1,80 @@
-package motor.ph;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 
 public class SalaryCalculator {
-        public static double calculateWeeklySalary(int employeeId, LocalDate startDate, LocalDate endDate) {
-        // Get Employee details
+         public static void calculateWeeklySalary(int employeeId, LocalDate startDate, LocalDate endDate) {
         List<Employee> employeeList = Employee.getEmployeeByEmployeeId(employeeId);
         if (employeeList.isEmpty()) {
             System.out.println("Employee not found.");
-            return 0.0;
+            return;
         }
-        Employee employee = employeeList.get(0); // Assume one matching record
+        
+        Employee employee = employeeList.get(0);
+        double hourlyRate = employee.getHourlyRate();
 
-        // Compute total work hours for the given week
-        double totalHoursWorked = WorkHours.getTotalHoursByEmployee(employeeId, startDate, endDate);
+        // Fetch WorkHours
+        List<WorkHours> workRecords = WorkHours.computeWorkHours();
+        double totalRegularHours = 0;
+        double totalOvertimeHours = 0;
+        long totalLateMinutes = 0;
+
+        for (WorkHours wh : workRecords) {
+            LocalDate recordDate = LocalDate.parse(wh.getDate(), DateTimeFormatter.ofPattern("MM/dd/yyyy"));
+
+            if (wh.getEmployeeId() == employeeId && 
+                (recordDate.isEqual(startDate) || recordDate.isAfter(startDate)) && recordDate.isBefore(endDate.plusDays(1))) {
+                totalRegularHours += wh.getRegularHours();
+                totalOvertimeHours += wh.getOvertimeHours();
+                totalLateMinutes += wh.getLateDeduction();
+            }
+        }
 
         // Compute base salary
-        double baseSalary = totalHoursWorked * employee.getHourlyRate();
+        double baseSalary = totalRegularHours * hourlyRate;
 
-        // Compute pro-rated weekly allowances
+        // Compute overtime pay (25% additional pay)
+        double overtimePay = totalOvertimeHours * (hourlyRate * 1.25);
+
+        // Compute late deduction
+        double lateDeduction = (hourlyRate / 60) * totalLateMinutes;
+
+        // Weekly allowances
         double weeklyRiceSubsidy = employee.getRiceSubsidy() / 4;
         double weeklyPhoneAllowance = employee.getPhoneAllowance() / 4;
         double weeklyClothingAllowance = employee.getClothingAllowance() / 4;
+        double totalAllowances = weeklyRiceSubsidy + weeklyPhoneAllowance + weeklyClothingAllowance;
 
-        // Total gross weekly salary
-        double grossWeeklySalary = baseSalary + weeklyRiceSubsidy + weeklyPhoneAllowance + weeklyClothingAllowance;
+        // Compute gross weekly salary
+        double grossWeeklySalary = baseSalary + overtimePay + totalAllowances - lateDeduction;
 
-        // Debugging Output
-        System.out.printf("Employee ID: %d\nTotal Hours Worked: %.2f\nBase Salary: %.2f\nAllowances: %.2f (Rice) + %.2f (Phone) + %.2f (Clothing)\nGross Weekly Salary: %.2f\n",
-                employeeId, totalHoursWorked, baseSalary, weeklyRiceSubsidy, weeklyPhoneAllowance, weeklyClothingAllowance, grossWeeklySalary);
+        // Compute government deductions
+        double sssDeduction = GovernmentDeduction.calculateSSS(grossWeeklySalary);
+        double pagIbigDeduction = GovernmentDeduction.calculatePagIbig(grossWeeklySalary);
+        double philHealthDeduction = GovernmentDeduction.calculatePhilHealth(grossWeeklySalary);
+        double totalGovDeductions = sssDeduction + pagIbigDeduction + philHealthDeduction;
 
-        return grossWeeklySalary;
+        // Compute taxable income (Gross - Gov Deductions)
+        double taxableIncome = grossWeeklySalary - totalGovDeductions;
+
+        // Compute tax deduction
+        double taxDeduction = TaxComputation.computeTax(taxableIncome);
+        double totalDeductions = totalGovDeductions + taxDeduction;
+
+        // Compute net salary
+        double netSalary = grossWeeklySalary - totalDeductions;
+
+        // Output payroll breakdown
+        System.out.printf("\n=== Payroll Summary ===\n");
+        System.out.printf("Employee ID: %d\nName: %s %s\nPosition: %s\nTotal Regular Hours: %.2f\nTotal OT Hours: %.2f\n",
+                employeeId, employee.getFirstName(), employee.getLastName(), employee.getPosition(), totalRegularHours, totalOvertimeHours);
+        System.out.printf("Hourly Rate: %.2f\nBasic Salary: %.2f\nOvertime Pay: %.2f\n", hourlyRate, baseSalary, overtimePay);
+        System.out.printf("Allowances: %.2f (Rice) + %.2f (Phone) + %.2f (Clothing)\n", 
+                weeklyRiceSubsidy, weeklyPhoneAllowance, weeklyClothingAllowance);
+        System.out.printf("Late Deduction: -%.2f\nGross Salary: %.2f\n", lateDeduction, grossWeeklySalary);
+        System.out.printf("SSS: %.2f\nPag-IBIG: %.2f\nPhilHealth: %.2f\nTax: %.2f\n", 
+                sssDeduction, pagIbigDeduction, philHealthDeduction, taxDeduction);
+        System.out.printf("Net Salary: %.2f\n", netSalary);
     }
 }
