@@ -1,3 +1,5 @@
+package motor.ph;
+
 public class GovernmentDeduction {
     // SSS Contribution Calculation
      public static double calculateSSS(double grossSalary) {
