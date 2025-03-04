@@ -1,3 +1,4 @@
+package motor.ph;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -17,7 +18,6 @@ public class MOTORPH {
             System.out.println("4. Process Payroll");
             System.out.println("5. Exit");
             System.out.print("Enter choice: ");
-
             int choice = scanner.nextInt();
 
             switch (choice) {
@@ -33,8 +33,9 @@ public class MOTORPH {
                     } else {
                         System.out.println("Employee not found.");
                     }
-                }
 
+                    if (!askToReturn(scanner)) return;
+                }
                 case 2 -> {
                     System.out.print("Enter Employee ID: ");
                     int searchEmployeeId = scanner.nextInt();
@@ -47,8 +48,9 @@ public class MOTORPH {
                     } else {
                         System.out.println("No attendance records found.");
                     }
-                }
 
+                    if (!askToReturn(scanner)) return;
+                }
                 case 3 -> {
                     System.out.print("Enter Employee ID: ");
                     int searchEmployeeId = scanner.nextInt();
@@ -58,7 +60,6 @@ public class MOTORPH {
                     System.out.print("Enter End Date (MM/dd/yyyy): ");
                     LocalDate endDate = LocalDate.parse(scanner.nextLine(), dateFormatter);
 
-                    // ✅ Get Work Hours Data
                     double totalRegularHours = WorkHours.getTotalRegularHours(searchEmployeeId, startDate, endDate);
                     double totalOvertime = WorkHours.getTotalOvertimeHours(searchEmployeeId, startDate, endDate);
                     double totalLateMinutes = WorkHours.getTotalLateMinutes(searchEmployeeId, startDate, endDate);
@@ -73,107 +74,128 @@ public class MOTORPH {
                     } else {
                         System.out.println("No work hours records found.");
                     }
-                }
 
+                    if (!askToReturn(scanner)) return;
+                }
                 case 4 -> {
                     System.out.print("Enter Employee ID: ");
                     int employeeId = scanner.nextInt();
                     scanner.nextLine(); // Consume newline
-                    
                     Employee employee = Employee.getEmployeeById(employeeId);
+
                     if (employee == null) {
                         System.out.println("Employee not found.");
+                        if (!askToReturn(scanner)) return;
                         break;
                     }
-                    
+
                     System.out.print("Enter Start Date (MM/dd/yyyy): ");
-                    LocalDate startDate = LocalDate.parse(scanner.nextLine(), DateTimeFormatter.ofPattern("MM/dd/yyyy"));
-                    
+                    LocalDate startDate = LocalDate.parse(scanner.nextLine(), dateFormatter);
                     System.out.print("Enter End Date (MM/dd/yyyy): ");
-                    LocalDate endDate = LocalDate.parse(scanner.nextLine(), DateTimeFormatter.ofPattern("MM/dd/yyyy"));
+                    LocalDate endDate = LocalDate.parse(scanner.nextLine(), dateFormatter);
 
-    // ✅ Determine if Weekly or Semi-Monthly
-    long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
-    boolean isWeekly = daysBetween <= 7; // If <= 7 days, it's weekly; else, semi-monthly
+                    long daysBetween = ChronoUnit.DAYS.between(startDate, endDate);
+                    boolean isWeekly = daysBetween <= 7;
+                    boolean isSemiMonthly = (startDate.getDayOfMonth() == 1 && endDate.getDayOfMonth() == 15) ||
+                                            (startDate.getDayOfMonth() == 16 && endDate.getDayOfMonth() == endDate.lengthOfMonth());
+                    boolean isFullMonth = startDate.getDayOfMonth() == 1 && endDate.getDayOfMonth() == endDate.lengthOfMonth();
 
-    // ✅ Retrieve Work Hours
-    double totalRegularHours = WorkHours.getTotalRegularHours(employeeId, startDate, endDate);
-    double totalOvertime = WorkHours.getTotalOvertimeHours(employeeId, startDate, endDate);
-    double totalLateMinutes = WorkHours.getTotalLateMinutes(employeeId, startDate, endDate);
-    double hourlyRate = employee.getBasicSalary() / 160; // 8 hours per day * 20 days
+                    double totalRegularHours = WorkHours.getTotalRegularHours(employeeId, startDate, endDate);
+                    double totalOvertime = WorkHours.getTotalOvertimeHours(employeeId, startDate, endDate);
+                    double totalLateMinutes = WorkHours.getTotalLateMinutes(employeeId, startDate, endDate);
+                    double hourlyRate = employee.getBasicSalary() / 160;
+                    double lateDeduction = totalLateMinutes * (hourlyRate / 60);
 
-    double lateDeduction = WorkHours.getTotalLateDeductions(employeeId, startDate, endDate, hourlyRate / 60);
+                    double baseSalary = totalRegularHours * hourlyRate;
+                    double overtimePay = totalOvertime * (hourlyRate * 1.25);
+                    double grossIncome = baseSalary + overtimePay;
 
-    // ✅ Compute Salary Components
-    double baseSalary = totalRegularHours * hourlyRate;
-    double overtimePay = totalOvertime * (hourlyRate * 1.25); // 25% OT rate
-    double grossIncome = baseSalary + overtimePay;
+                    double riceSubsidy, phoneAllowance, clothingAllowance;
+                    if (isWeekly) {
+                        riceSubsidy = employee.getRiceSubsidy() / 4;
+                        phoneAllowance = employee.getPhoneAllowance() / 4;
+                        clothingAllowance = employee.getClothingAllowance() / 4;
+                    } else if (isSemiMonthly) {
+                        riceSubsidy = employee.getRiceSubsidy() / 2;
+                        phoneAllowance = employee.getPhoneAllowance() / 2;
+                        clothingAllowance = employee.getClothingAllowance() / 2;
+                    } else {
+                        riceSubsidy = employee.getRiceSubsidy();
+                        phoneAllowance = employee.getPhoneAllowance();
+                        clothingAllowance = employee.getClothingAllowance();
+                    }
+                    double totalAllowances = riceSubsidy + phoneAllowance + clothingAllowance;
 
-    // ✅ Compute Allowances Based on Payroll Period
-    double riceSubsidy = isWeekly ? employee.getRiceSubsidy() / 4 : employee.getRiceSubsidy() / 2;
-    double phoneAllowance = isWeekly ? employee.getPhoneAllowance() / 4 : employee.getPhoneAllowance() / 2;
-    double clothingAllowance = isWeekly ? employee.getClothingAllowance() / 4 : employee.getClothingAllowance() / 2;
-    double totalAllowances = riceSubsidy + phoneAllowance + clothingAllowance;
+                    double sssDeduction = GovernmentDeduction.calculateSSS(grossIncome);
+                    double pagIbigDeduction = GovernmentDeduction.calculatePagIbig(grossIncome);
+                    double philHealthDeduction = GovernmentDeduction.calculatePhilHealth(grossIncome);
+                    double taxDeduction = TaxComputation.computeTax(grossIncome - (sssDeduction + pagIbigDeduction + philHealthDeduction));
+                    double totalDeductions = sssDeduction + pagIbigDeduction + philHealthDeduction + taxDeduction + lateDeduction;
+                    double netSalary = grossIncome + totalAllowances - totalDeductions;
 
-    // ✅ Compute Government Deductions
-    double sssDeduction = GovernmentDeduction.calculateSSS(grossIncome);
-    double pagIbigDeduction = GovernmentDeduction.calculatePagIbig(grossIncome);
-    double philHealthDeduction = GovernmentDeduction.calculatePhilHealth(grossIncome);
-    double taxDeduction = TaxComputation.computeTax(grossIncome - (sssDeduction + pagIbigDeduction + philHealthDeduction));
-    double totalDeductions = sssDeduction + pagIbigDeduction + philHealthDeduction + taxDeduction;
+                    // ✅ Print Payslip
+                    System.out.println("\n====================================");
+                    System.out.println("        MOTORPH PAYSLIP");
+                    System.out.println("====================================");
+                    System.out.println("Period Start: " + startDate);
+                    System.out.println("Period End: " + endDate);
+                    System.out.println("Employee ID: " + employeeId);
+                    System.out.println("Employee Name: " + employee.getFirstName() + " " + employee.getLastName());
+                    System.out.println("Position: " + employee.getPosition());
+                    System.out.println("====================================");
+                    System.out.println("\nEARNINGS:");
+                    System.out.printf("Monthly Rate (Basic Pay): %.2f\n", employee.getBasicSalary());
+                    System.out.printf("Hourly Rate: %.2f\n", hourlyRate);
+                    System.out.printf("Total Regular Hours: %.2f\n", totalRegularHours);
+                    System.out.printf("Total Overtime Hours: %.2f\n", totalOvertime);
+                    System.out.printf("Overtime Pay: %.2f\n", overtimePay);
+                    System.out.printf("Gross Income: %.2f\n", grossIncome);
+                    System.out.println("====================================");
+                    System.out.println("LATE DETAILS:");
+                    System.out.printf("Total Late Minutes: %.2f\n", totalLateMinutes);
+                    System.out.printf("Late Deduction: %.2f\n\n", lateDeduction);
+                    System.out.println("====================================");
+                    System.out.println("\nBENEFITS:");
+                    System.out.printf("Rice Subsidy: %.2f\n", riceSubsidy);
+                    System.out.printf("Phone Allowance: %.2f\n", phoneAllowance);
+                    System.out.printf("Clothing Allowance: %.2f\n", clothingAllowance);
+                    System.out.printf("Total Benefits: %.2f\n\n", totalAllowances);
+                    System.out.println("====================================");
+                    System.out.println("DEDUCTIONS:");
+                    System.out.printf("SSS: %.2f\n", sssDeduction);
+                    System.out.printf("PhilHealth: %.2f\n", philHealthDeduction);
+                    System.out.printf("Pag-IBIG: %.2f\n", pagIbigDeduction);
+                    System.out.printf("Withholding Tax: %.2f\n", taxDeduction);
+                    System.out.printf("Late Deduction: %.2f\n", lateDeduction);
+                    System.out.printf("Total Deductions: %.2f\n\n", totalDeductions);
+                    System.out.println("====================================");
+                    System.out.println("SUMMARY:");
+                    System.out.printf("Gross Income: %.2f\n", grossIncome);
+                    System.out.printf("Benefits: %.2f\n", totalAllowances);
+                    System.out.printf("Deductions: %.2f\n", totalDeductions);
+                    System.out.printf("Take Home Pay: %.2f\n", netSalary);
+                    System.out.println("====================================");
 
-    // ✅ Compute Net Salary
-    double netSalary = grossIncome + totalAllowances - totalDeductions - lateDeduction;
-
-    // ✅ Print Payslip
-    System.out.println("\n====================================");
-    System.out.println("        MOTORPH PAYSLIP");
-    System.out.println("====================================");
-    System.out.println("Period Start: " + startDate);
-    System.out.println("Period End: " + endDate);
-    System.out.println("Employee ID: " + employeeId);
-    System.out.println("Employee Name: " + employee.getFirstName() + " " + employee.getLastName());
-    System.out.println("Position: " + employee.getPosition());
-
-    System.out.println("\nEARNINGS:");
-    System.out.printf("Monthly Rate (Basic Pay): %.2f\n", employee.getBasicSalary());
-    System.out.printf("Hourly Rate: %.2f\n", hourlyRate);
-    System.out.printf("Total Regular Hours: %.2f\n", totalRegularHours);
-    System.out.printf("Total Overtime Hours: %.2f\n", totalOvertime);
-    System.out.printf("Overtime Pay: %.2f\n", overtimePay);
-    System.out.printf("Gross Income: %.2f\n", grossIncome);
-
-    System.out.println("\nBENEFITS:");
-    System.out.printf("Rice Subsidy: %.2f\n", riceSubsidy);
-    System.out.printf("Phone Allowance: %.2f\n", phoneAllowance);
-    System.out.printf("Clothing Allowance: %.2f\n", clothingAllowance);
-    System.out.printf("Total Benefits: %.2f\n\n", totalAllowances);
-
-    System.out.println("DEDUCTIONS:");
-    System.out.printf("SSS: %.2f\n", sssDeduction);
-    System.out.printf("PhilHealth: %.2f\n", philHealthDeduction);
-    System.out.printf("Pag-IBIG: %.2f\n", pagIbigDeduction);
-    System.out.printf("Withholding Tax: %.2f\n", taxDeduction);
-    System.out.printf("Late Deduction: %.2f\n", lateDeduction);
-    System.out.printf("Total Deductions: %.2f\n\n", totalDeductions);
-
-    System.out.println("SUMMARY:");
-    System.out.printf("Gross Income: %.2f\n", grossIncome);
-    System.out.printf("Benefits: %.2f\n", totalAllowances);
-    System.out.printf("Deductions: %.2f\n", totalDeductions);
-    System.out.printf("Take Home Pay: %.2f\n", netSalary);
-    System.out.println("====================================");
-
+                    if (!askToReturn(scanner)) return;
                 }
-
                 case 5 -> {
                     System.out.println("Exiting program...");
                     scanner.close();
                     return;
                 }
-
                 default -> System.out.println("Invalid choice. Please try again.");
             }
         }
     }
+
+    private static boolean askToReturn(Scanner scanner) {
+        System.out.println("\nWould you like to return to the main menu?");
+        System.out.println("1. Yes");
+        System.out.println("2. No");
+        System.out.print("Enter choice: ");
+        int returnChoice = scanner.nextInt();
+
+        return returnChoice == 1;
+    }
 }
+
