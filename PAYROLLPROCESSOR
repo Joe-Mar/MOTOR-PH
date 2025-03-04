@@ -1,3 +1,4 @@
+package motor.ph;
 import java.time.LocalDate;
 import java.util.List;
 
@@ -16,7 +17,7 @@ public class PayrollProcessor {
         // Get work hour details from WorkHours class
         double regularHours = WorkHours.getTotalRegularHours(employeeId, startDate, endDate);
         double overtimeHours = WorkHours.getTotalOvertimeHours(employeeId, startDate, endDate);
-        double lateDeduction = WorkHours.getTotalLateDeductions(employeeId, startDate, endDate, hourlyRate);
+        double totalLateDeduction = WorkHours.getTotalLateDeductions(employeeId, startDate, endDate, hourlyRate);
 
         // Compute Base Salary
         double baseSalary = regularHours * hourlyRate;
@@ -46,7 +47,7 @@ public class PayrollProcessor {
         totalDeductions += taxDeduction;
 
         // Compute final net salary after late deductions
-        double netSalary = totalGrossIncome - totalDeductions - lateDeduction;
+        double netSalary = totalGrossIncome - totalDeductions - totalLateDeduction;
 
         // Display Payroll Breakdown
         System.out.printf("\n=== Payroll Summary ===\n");
@@ -56,7 +57,7 @@ public class PayrollProcessor {
         System.out.printf("Allowances: %.2f (Rice) + %.2f (Phone) + %.2f (Clothing) = %.2f\n", 
                 weeklyRiceSubsidy, weeklyPhoneAllowance, weeklyClothingAllowance, totalAllowances);
         System.out.printf("Gross Salary: %.2f\nSSS: %.2f\nPag-IBIG: %.2f\nPhilHealth: %.2f\nTax: %.2f\nLate Deduction: %.2f\n",
-                totalGrossIncome, sssDeduction, pagIbigDeduction, philHealthDeduction, taxDeduction, lateDeduction);
+                totalGrossIncome, sssDeduction, pagIbigDeduction, philHealthDeduction, taxDeduction, totalLateDeduction);
         System.out.printf("Net Salary: %.2f\n", netSalary);
         System.out.println("------------------------------");
     }
