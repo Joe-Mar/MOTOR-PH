@@ -23,7 +23,7 @@ public class Employee {
     private double phoneAllowance;
     private double clothingAllowance;
     private double grossSemiMonthlyRate;
-    private double hourlyRate;
+    double hourlyRate;
 
     private static final String FILE_NAME = "C:\\Users\\lasic\\OneDrive\\Documents\\NetBeansProjects\\MOTOR-PH\\build\\classes\\motor\\resources\\employee-data.csv";
 
@@ -75,7 +75,7 @@ public class Employee {
     public double getGrossSemiMonthlyRate() { return grossSemiMonthlyRate; }
     public double getHourlyRate() { return hourlyRate; }
 
-    // Updated method: Get prorated total allowances
+    // method Get prorated total allowances
     public double getAllowances(long totalWorkDays, long workDays) {
         double totalMonthlyAllowance = riceSubsidy + phoneAllowance + clothingAllowance;
         if (totalWorkDays > 0) {
