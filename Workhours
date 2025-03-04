@@ -1,3 +1,4 @@
+package motor.ph;
 import java.io.*;
 import java.time.Duration;
 import java.time.LocalDate;
@@ -111,12 +112,10 @@ public class WorkHours {
                 .sum();
     }
 
-    public static double getTotalLateDeductions(int empId, LocalDate startDate, LocalDate endDate, double hourlyRate) {
-        return computeWorkHours().stream()
-                .filter(wh -> wh.getEmployeeId() == empId && isDateInRange(wh.getDate(), startDate, endDate))
-                .mapToDouble(wh -> (hourlyRate / 60) * wh.getLateMinutes())  // ✅ Fixed: Used getLateMinutes()
-                .sum();
-    }
+    public static double getTotalLateDeductions(int employeeId, LocalDate startDate, LocalDate endDate, double hourlyRate) {
+    int totalLateMinutes = (int) getTotalLateMinutes(employeeId, startDate, endDate);
+    return (hourlyRate / 60) * totalLateMinutes; // Compute per minute inside the method
+}
 
     private static boolean isDateInRange(String dateStr, LocalDate startDate, LocalDate endDate) {
         LocalDate date = LocalDate.parse(dateStr, dateFormatter);
