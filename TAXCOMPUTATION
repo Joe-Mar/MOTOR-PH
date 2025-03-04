@@ -1,3 +1,5 @@
+package motor.ph;
+
 public class TaxComputation {
     public static double computeTax(double taxableIncome) {
         if (taxableIncome <= 20833) {
